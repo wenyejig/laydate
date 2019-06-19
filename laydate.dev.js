@@ -13,12 +13,11 @@
 //全局配置，如果采用默认均不需要改动
 var config =  {
     path: '', //laydate所在路径
-    skin: 'default', //初始化皮肤
+    defSkin: 'default', //初始化皮肤
     format: 'YYYY-MM-DD', //日期格式
     min: '1900-01-01 00:00:00', //最小日期
     max: '2099-12-31 23:59:59', //最大日期
-    isv: false,
-    init: true
+    isv: false
 };
 
 var Dates = {}, doc = document, creat = 'createElement', byid = 'getElementById', tags = 'getElementsByTagName';
@@ -167,11 +166,11 @@ Dates.run = function(options){
         target = {};
     }
     elem = options.elem ? S(options.elem) : target;
-
-    as.elemv = /textarea|input/.test(elem.tagName.toLocaleLowerCase()) ? 'value' : 'innerHTML';
-    if (('init' in options ? options.init : config.init) && (!elem[as.elemv])) elem[as.elemv] = laydate.now(null, options.format || config.format);
-
-    if(even && target.tagName){
+    /*even && target.tagName
+    *
+    * 始终是false
+    * */
+    if(false){
         if(!elem || elem === Dates.elem){
             return;
         }
@@ -192,8 +191,6 @@ Dates.run = function(options){
             });
         });
     }
-
-    chgSkin(options.skin || config.skin)
 };
 
 Dates.scroll = function(type){
@@ -392,12 +389,12 @@ Dates.viewDate = function(Y, M, D){
         getCheck = null
     });
     Dates.addClass(as.mms[Dates.ymd[1]], as[2]);
-
+    
     //定位时分秒
     log.times = [
-        Dates.inymd[Dates.elemIndexMap.hour]|0 || 0,
-        Dates.inymd[Dates.elemIndexMap.minute]|0 || 0,
-        Dates.inymd[Dates.elemIndexMap.second]|0 || 0
+        Dates.inymd[3]|0 || 0, 
+        Dates.inymd[4]|0 || 0, 
+        Dates.inymd[5]|0 || 0
     ];
     Dates.each(new Array(3), function(i){
         Dates.hmsin[i].value = Dates.digit(Dates.timeVoid(log.times[i], i) ? Dates.mins[i+3]|0 : log.times[i]|0);
@@ -460,34 +457,10 @@ Dates.viewYears = function(YY){
     });
 };
 
-Dates.getEachElementIndex = function(format) {
-    var components = {};
-    var currentIndex = 0;
-    format.replace(/YYYY|MM|DD|hh|mm|ss/g, function(str, index){
-        if (str === 'YYYY') {
-            components['year'] = currentIndex++;
-        } else if (str === 'MM') {
-            components['month'] = currentIndex++;
-        } else if (str === 'DD') {
-            components['day'] = currentIndex++;
-        } else if (str === 'hh') {
-            components['hour'] = currentIndex++;
-        } else if (str === 'mm') {
-            components['minute'] = currentIndex++;
-        } else if (str === 'ss') {
-            components['second'] = currentIndex++;
-        }
-        return "";
-    });
-    return components;
-};
-
 //初始化面板数据
-Dates.initDate = function(format){
+Dates.initDate = function(){
     var S = Dates.query, log = {}, De = new Date();
     var ymd = Dates.elem[as.elemv].match(/\d+/g) || [];
-    var elemIndexMap = Dates.getEachElementIndex(format);
-    Dates.elemIndexMap = elemIndexMap;
     if(ymd.length < 3){
         ymd = Dates.options.start.match(/\d+/g) || [];
         if(ymd.length < 3){
@@ -495,7 +468,7 @@ Dates.initDate = function(format){
         }
     }
     Dates.inymd = ymd;
-    Dates.viewDate(ymd[elemIndexMap.year], ymd[elemIndexMap.month] - 1, ymd[elemIndexMap.day]);
+    Dates.viewDate(ymd[0], ymd[1]-1, ymd[2]);
 };
 
 //是否显示零件
@@ -512,13 +485,17 @@ Dates.iswrite = function(){
 //方位辨别
 Dates.orien = function(obj, pos){
     var tops, rect = Dates.elem.getBoundingClientRect();
-    obj.style.left = rect.left + (pos ? 0 : Dates.scroll(1)) + 'px';
+    var jlRight=0;
+    if(Dates.options.right){
+        jlRight=Dates.options.right;
+    }
+    obj.style.left = rect.left + (pos ? 0 : Dates.scroll(1))-jlRight + 'px';
     if(rect.bottom + obj.offsetHeight/1.5 <= Dates.winarea()){
         tops = rect.bottom - 1;         
     } else {
         tops = rect.top > obj.offsetHeight/1.5 ? rect.top - obj.offsetHeight + 1 : Dates.winarea() - obj.offsetHeight;
     }
-    obj.style.top = Math.max(tops + (pos ? 0 : Dates.scroll()),1) + 'px';
+    obj.style.top = tops + (pos ? 0 : Dates.scroll()) + 'px';
 };
 
 //吸附定位
@@ -573,6 +550,8 @@ Dates.view = function(elem, options){
     Dates.mins = log.mm[0].match(/\d+/g);
     Dates.maxs = log.mm[1].match(/\d+/g);
     
+    as.elemv = /textarea|input/.test(Dates.elem.tagName.toLocaleLowerCase()) ? 'value' : 'innerHTML';
+       
     if(!Dates.box){
         div = doc[creat]('div');
         div.id = as[0];
@@ -633,7 +612,7 @@ Dates.view = function(elem, options){
     options.zIndex ? Dates.box.style.zIndex = options.zIndex : Dates.removeCssAttr(Dates.box, 'z-index');
     Dates.stopMosup('click', Dates.box);
     
-    Dates.initDate(options.format);
+    Dates.initDate();
     Dates.iswrite();
     Dates.check();
 };
@@ -655,24 +634,11 @@ Dates.close = function(){
 
 //转换日期格式
 Dates.parse = function(ymd, hms, format){
-    ymd = ymd.concat(hms); // [year, month, day, hour, minute, second]
+    ymd = ymd.concat(hms);
     format = format || (Dates.options ? Dates.options.format : config.format);
     return format.replace(/YYYY|MM|DD|hh|mm|ss/g, function(str, index){
-        var pos = -1;
-        if (str === 'YYYY') {
-            pos = 0;
-        } else if (str === 'MM') {
-            pos = 1;
-        } else if (str === 'DD') {
-            pos = 2;
-        } else if (str === 'hh') {
-            pos = 3;
-        } else if (str === 'mm') {
-            pos = 4;
-        } else if (str === 'ss') {
-            pos = 5;
-        }
-        return Dates.digit(ymd[pos]);
+        ymd.index = ++ymd.index|0;
+        return Dates.digit(ymd[ymd.index]);
     });     
 };
 
@@ -791,25 +757,14 @@ Dates.events = function(){
     Dates.on(as.oclear, 'click', function(){
         Dates.elem[as.elemv] = '';
         Dates.close();
+        typeof Dates.options.choose === 'function' && Dates.options.choose("");
     });
     
     //今天
     as.otoday = S('#laydate_today');
     Dates.on(as.otoday, 'click', function(){
         var now = new Date();
-        // 2016-09-23 18:20:54 修复选中今天choose方法得不到数据
-        // Dates.creation([now.getFullYear(), now.getMonth() + 1, now.getDate()]);
-
-        // 2016-09-26 10:49:25 修复选中今天 如果YYYY-MM-DD hh:mm:ss格式，获取当前的时分秒
-        var hms = Dates.hmsin;
-        var date = new Date();
-        // 获取当前时间小时
-        hms[0].value = date.getHours();
-        // 获取当前时间分钟
-        hms[1].value = date.getMinutes();
-        // 获取当前时间秒
-        hms[2].value = date.getSeconds();
-        Dates.creation([Dates.ymd[0], Dates.ymd[1]+1, Dates.ymd[2]]);
+        Dates.creation([now.getFullYear(), now.getMonth() + 1, now.getDate()]);
     });
     
     //确认
@@ -896,7 +851,7 @@ Dates.events = function(){
 
 Dates.init = (function(){
     Dates.use('need');
-    Dates.use(as[4] + config.skin, as[3]);
+    Dates.use(as[4] + config.defSkin, as[3]);
     Dates.skinLink = Dates.query('#'+as[3]);
 }());
 
@@ -918,10 +873,7 @@ laydate.now = function(timestamp, format){
 };
 
 //皮肤选择
-laydate.skin = chgSkin;
-
-//内部函数
-function chgSkin(lib) {
+laydate.skin = function(lib){
     Dates.skinLink.href = Dates.getPath + as[4] + lib + as[5];
 };
 
